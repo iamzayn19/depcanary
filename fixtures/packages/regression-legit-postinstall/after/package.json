@@ -1,0 +1,5 @@
+{
+  "name": "regression-legit-postinstall",
+  "version": "1.0.1",
+  "scripts": { "postinstall": "node scripts/build-native.js" }
+}

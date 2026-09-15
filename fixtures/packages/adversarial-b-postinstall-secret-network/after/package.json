@@ -1,0 +1,5 @@
+{
+  "name": "adversarial-b-postinstall-secret-network",
+  "version": "1.0.1",
+  "scripts": { "postinstall": "node scripts/setup.js" }
+}

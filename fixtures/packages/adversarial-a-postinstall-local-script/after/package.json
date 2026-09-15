@@ -1,0 +1,5 @@
+{
+  "name": "adversarial-a-postinstall-local-script",
+  "version": "1.0.1",
+  "scripts": { "postinstall": "node scripts/setup.js" }
+}

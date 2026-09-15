@@ -1,0 +1,48 @@
+name: Release
+
+# Publishes to npm using Trusted Publishing (OIDC) — no long-lived NPM_TOKEN
+# secret is used or required. This workflow only runs when a GitHub Release
+# is published; it never runs on ordinary pushes to main, and no automated
+# agent or CI process triggers it.
+#
+# HUMAN SETUP REQUIRED before this workflow can successfully publish:
+#   1. The npm package "depcanary" must exist (first publish must be done
+#      manually once, or npm Trusted Publishing must be configured to allow
+#      first-publish via this workflow — check current npm docs).
+#   2. In npmjs.com package settings, configure a Trusted Publisher pointing
+#      at this exact GitHub repository, workflow file path
+#      (.github/workflows/release.yml), and environment (if one is used).
+#   3. The repository's "repository.url" in package.json must exactly match
+#      the published GitHub repository for provenance to validate.
+#   4. This workflow never runs automatically — a human must publish a
+#      GitHub Release to trigger it.
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    name: Build, verify, and publish
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write # required for npm Trusted Publishing (OIDC)
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+          registry-url: "https://registry.npmjs.org"
+      - run: npm ci
+      - run: npm run check
+      - run: npm run smoke
+      - run: npm pack --dry-run
+      # Publishes via npm Trusted Publishing (OIDC). Requires npm CLI with
+      # Trusted Publishing support and the Trusted Publisher configured on
+      # npmjs.com per the setup notes above. No NPM_TOKEN secret is used.
+      - run: npm publish --provenance --access public
