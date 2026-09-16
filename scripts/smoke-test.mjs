@@ -155,6 +155,11 @@ async function main() {
   const tarballAbsPath = path.join(repoRoot, tarballName);
   log(`packed ${tarballName} (${packInfo.size} bytes, ${packInfo.entryCount} entries)`);
 
+  if (packInfo.name !== "@iamzayn19/depcanary") {
+    throw new Error(`Unexpected package name in tarball: ${packInfo.name}`);
+  }
+  log(`package name verified (${packInfo.name})`);
+
   const forbidden = ["test/", "fixtures/", ".github/", "coverage/"];
   for (const entry of packInfo.files) {
     for (const bad of forbidden) {
@@ -199,7 +204,7 @@ async function main() {
       process.execPath,
       [
         "-e",
-        "import('depcanary').then(m => { if (typeof m.compare !== 'function') throw new Error('compare not exported'); console.log('ok'); })"
+        "import('@iamzayn19/depcanary').then(m => { if (typeof m.compare !== 'function') throw new Error('compare not exported'); console.log('ok'); })"
       ],
       { cwd: tmpProject, encoding: "utf8" }
     );

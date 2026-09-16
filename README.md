@@ -8,7 +8,7 @@ process execution, secret access, sensitive file reads, new network
 destinations, executable artifacts, and suspicious obfuscation.
 
 ```console
-$ npx depcanary some-package@2.4.7 some-package@2.4.8
+$ npx @iamzayn19/depcanary some-package@2.4.7 some-package@2.4.8
 
 DepCanary
 
@@ -66,13 +66,18 @@ an AI assistant, or a sandbox that executes third-party code.
 ## Install / usage
 
 ```console
-npx depcanary lodash@4.17.20 lodash@4.17.21
+npx @iamzayn19/depcanary lodash@4.17.20 lodash@4.17.21
 ```
 
-Or install it as a dev dependency / global tool:
+Or install it globally / as a dev dependency:
 
 ```console
-npm install --save-dev depcanary
+npm install -g @iamzayn19/depcanary
+depcanary lodash@4.17.20 lodash@4.17.21
+```
+
+```console
+npm install --save-dev @iamzayn19/depcanary
 ```
 
 Requires Node.js `>=22`.
@@ -221,10 +226,10 @@ support matrix.
 
 ```yaml
 - name: Review dependency update
-  run: npx depcanary axios@1.13.1 axios@1.13.2 --fail-on high
+  run: npx @iamzayn19/depcanary axios@1.13.1 axios@1.13.2 --fail-on high
 
 - name: Scan direct dependency updates
-  run: npx depcanary --all --fail-on high
+  run: npx @iamzayn19/depcanary --all --fail-on high
 ```
 
 DepCanary produces no interactive prompts, no spinners in non-TTY

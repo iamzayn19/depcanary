@@ -6,7 +6,7 @@ name: Release
 # agent or CI process triggers it.
 #
 # HUMAN SETUP REQUIRED before this workflow can successfully publish:
-#   1. The npm package "depcanary" must exist (first publish must be done
+#   1. The npm package "@iamzayn19/depcanary" must exist (first publish must be done
 #      manually once, or npm Trusted Publishing must be configured to allow
 #      first-publish via this workflow — check current npm docs).
 #   2. In npmjs.com package settings, configure a Trusted Publisher pointing
