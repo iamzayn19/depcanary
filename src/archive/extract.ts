@@ -41,10 +41,15 @@ export async function extractTarballSafely(buffer: Buffer): Promise<ExtractedArc
 
   try {
     const parser = new tar.Parser({});
+    let firstError: unknown;
     const finished = new Promise<void>((resolve, reject) => {
       parser.on("error", reject);
       parser.on("end", resolve);
     });
+    // Swallow rejections on `finished` here so they are never left unconsumed if this
+    // promise settles before the per-entry `pending` tasks below are awaited - the
+    // canonical error is captured in `firstError` and re-thrown after everything settles.
+    finished.catch(() => {});
     const pending: Promise<void>[] = [];
 
     parser.on("entry", (entry: tar.ReadEntry) => {
@@ -124,27 +129,28 @@ export async function extractTarballSafely(buffer: Buffer): Promise<ExtractedArc
           mode: entry.mode ?? 0o644
         });
       })().catch((err) => {
-        // Abort the stream promptly (in case it is still flowing) *and* propagate
-        // the failure through `pending` below - the "end" event can otherwise fire
-        // (and the outer `finished` promise resolve) before this rejection would
-        // be observed, which would let a validation failure be silently swallowed.
+        // Record the failure and abort the stream promptly (in case it is still
+        // flowing), but never re-throw here: this handler's return value feeds
+        // `pending` below, and a task promise that stays rejected past that point
+        // would be an unconsumed ("unhandled") rejection once `finished` settles
+        // first and short-circuits the normal await path.
+        if (firstError === undefined) firstError = err;
         parser.emit("error", err);
-        throw err;
       });
       pending.push(task);
     });
 
-    await new Promise<void>((resolve, reject) => {
-      Readable.from(buffer).pipe(parser);
-      finished.then(resolve, reject);
-    });
-    // The parser's "end" event fires once the underlying stream has been fully
-    // consumed, but per-entry processing (sanitization, mkdir, write) happens in
-    // detached async tasks kicked off from the "entry" handler above. Wait for all
-    // of them to settle before returning, otherwise callers can observe a
-    // partially-populated (or empty) `files` array, or a swallowed failure,
-    // despite extraction appearing to "succeed".
+    Readable.from(buffer).pipe(parser);
+    await finished;
+    // The parser's "end"/"error" events fire once the underlying stream has been
+    // fully consumed, but per-entry processing (sanitization, mkdir, write) happens
+    // in detached async tasks kicked off from the "entry" handler above. Wait for
+    // all of them to settle before returning, otherwise callers can observe a
+    // partially-populated (or empty) `files` array, or a swallowed failure, despite
+    // extraction appearing to "succeed". These tasks never reject (see above), so
+    // Promise.all is safe here and cannot itself introduce another floating rejection.
     await Promise.all(pending);
+    if (firstError !== undefined) throw firstError;
   } catch (err) {
     await cleanup();
     if (err instanceof ArchiveSafetyError) throw err;
