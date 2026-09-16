@@ -44,9 +44,8 @@ _(Synthetic example — `some-package` is not a real npm package.)_
 `npm install` and `npm update` trust that a new version behaves like the old
 one. Most of the time it does. Occasionally it doesn't: a maintainer's
 account is compromised, a dependency is taken over, or a "patch" release
-quietly adds a `postinstall` script that phones home. Most tooling either
-scans for _known_ vulnerabilities (npm audit) or does nothing at all about
-_behavioral_ change between two specific published artifacts.
+quietly adds a `postinstall` script that phones home. Many dependency-security workflows focus on known vulnerabilities.
+DepCanary focuses specifically on behavioral changes between two published package versions.
 
 DepCanary answers one narrow question:
 
