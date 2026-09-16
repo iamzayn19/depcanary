@@ -327,7 +327,7 @@ still valuable alongside) DepCanary.
 ## Development
 
 ```console
-git clone <repo>
+git clone https://github.com/iamzayn19/depcanary.git
 cd depcanary
 npm ci
 npm run check   # format check, lint, typecheck, tests, build
