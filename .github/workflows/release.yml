@@ -16,6 +16,14 @@ name: Release
 #      the published GitHub repository for provenance to validate.
 #   4. This workflow never runs automatically — a human must publish a
 #      GitHub Release to trigger it.
+#
+# IDEMPOTENCY: before publishing, this workflow reads the exact name/version
+# from package.json and checks the public npm registry for that exact
+# name@version. If it already exists, publish is skipped and the workflow
+# still succeeds (safe to re-run, e.g. after a transient failure on a
+# previous attempt for the same release). If the registry check itself fails
+# for any reason other than a plain 404 (network error, outage, etc.), the
+# workflow fails loudly instead of assuming the version is unpublished.
 
 on:
   release:
@@ -42,7 +50,51 @@ jobs:
       - run: npm run check
       - run: npm run smoke
       - run: npm pack --dry-run
+      # npm Trusted Publishing (OIDC) requires npm CLI >= 11.5.1. Node 24's
+      # bundled npm may be older than that, so pin an npm known to support it.
+      - name: Ensure npm CLI supports Trusted Publishing
+        run: |
+          npm install -g npm@^11.5.1
+          npm --version
+      # This workflow can run more than once for the same release (a manual
+      # re-run, a workflow re-trigger, etc). Publishing is made idempotent by
+      # checking, from package.json itself, whether that exact name@version
+      # already exists on the registry before attempting to publish.
+      - name: Check whether this exact version is already published
+        id: version_check
+        run: |
+          set -eo pipefail
+          NAME=$(node -p "require('./package.json').name")
+          VERSION=$(node -p "require('./package.json').version")
+          echo "name=$NAME" >> "$GITHUB_OUTPUT"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+          set +e
+          PUBLISHED_VERSION=$(npm view "${NAME}@${VERSION}" version 2>npm-view-error.log)
+          STATUS=$?
+          set -e
+
+          if [ "$STATUS" -eq 0 ] && [ "$PUBLISHED_VERSION" = "$VERSION" ]; then
+            echo "published=true" >> "$GITHUB_OUTPUT"
+          elif [ "$STATUS" -ne 0 ] && grep -q "E404" npm-view-error.log; then
+            # E404 from `npm view` on an exact name@version means the registry
+            # has never seen this version - genuinely not published yet.
+            echo "published=false" >> "$GITHUB_OUTPUT"
+          else
+            # Any other failure (network error, registry outage, auth issue,
+            # unexpected output, ...) is NOT proof the version is unpublished.
+            # Fail loudly instead of silently proceeding to publish.
+            echo "::error::Could not determine whether ${NAME}@${VERSION} is already published (not a plain 404 - see log below)."
+            cat npm-view-error.log
+            exit 1
+          fi
+      - name: Already published - skipping
+        if: steps.version_check.outputs.published == 'true'
+        run: |
+          echo "::notice::${{ steps.version_check.outputs.name }}@${{ steps.version_check.outputs.version }} is already published on npm. Skipping npm publish."
       # Publishes via npm Trusted Publishing (OIDC). Requires npm CLI with
       # Trusted Publishing support and the Trusted Publisher configured on
       # npmjs.com per the setup notes above. No NPM_TOKEN secret is used.
-      - run: npm publish --provenance --access public
+      - name: Publish to npm
+        if: steps.version_check.outputs.published == 'false'
+        run: npm publish --provenance --access public
