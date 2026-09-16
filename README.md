@@ -1,3 +1,8 @@
+[![npm version](https://img.shields.io/npm/v/@iamzayn19/depcanary.svg)](https://www.npmjs.com/package/@iamzayn19/depcanary)
+[![CI](https://github.com/iamzayn19/depcanary/actions/workflows/ci.yml/badge.svg)](https://github.com/iamzayn19/depcanary/actions/workflows/ci.yml)
+[![Node](https://img.shields.io/node/v/@iamzayn19/depcanary.svg)](https://www.npmjs.com/package/@iamzayn19/depcanary)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 # DepCanary
 
 > **See risky dependency updates before they land.**
